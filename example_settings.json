@@ -1,0 +1,10 @@
+{
+    "qqcode": "YOUR_QQ_CODE",
+    "appid": "YOUR_APP_ID",
+    "appsecret": "YOUR_APP_SECRET",
+    "token": "YOUR_TOKEN",
+    "deepseek_apikey": "YOUR_DEEPSEEK_API_KEY",
+    "deepseek_base_url": "https://api.deepseek.com",
+    "deepseek_model": "deepseek-v4-flash",
+    "diving_fish_dev": "YOUR_DIVING_FISH_DEV_TOKEN"
+}

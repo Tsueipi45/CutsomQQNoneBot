@@ -1,0 +1,7 @@
+nonebot2[fastapi]==2.5.0
+nonebot-adapter-onebot==2.4.6
+openai
+requests
+maimai-py
+Pillow
+matplotlib

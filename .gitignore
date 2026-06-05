@@ -1,0 +1,29 @@
+# Python runtime/build artifacts
+.venv/
+__pycache__/
+*.py[cod]
+.ruff_cache/
+
+# Editor/local runtime files
+.vscode/
+*.log
+
+# Keep project runtime config/data tracked by request:
+# .env
+# userdata.json
+# pictures/
+settings.json
+pictures/maimai_bg/_cache/
+
+# Local/sensitive user data backups
+userdata.legacy*.json
+
+# Local NapCat runtime. Keep only small project docs/templates/scripts.
+napcat/*
+!napcat/README.md
+!napcat/onebot11.json
+!napcat/start-nonebot.ps1
+
+# Old local Lagrange backup
+napcat/legacy-lagrange.disabled/
+napcat/legacy-lagrange.disabled.*/
