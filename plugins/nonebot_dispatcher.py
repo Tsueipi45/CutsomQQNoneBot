@@ -14,6 +14,7 @@ from plugins.nb_compat import CompatMessage
 
 SimpleHandler = Callable[[Bot, CompatMessage, str], Awaitable[Any]]
 ExtendedHandler = Callable[[Bot, CompatMessage, str, str], Awaitable[Any]]
+SuffixHandler = Callable[[Bot, CompatMessage, str, str], Awaitable[Any]]
 
 
 simple_handlers: dict[str, SimpleHandler] = {
@@ -32,6 +33,10 @@ extended_handlers: dict[str, ExtendedHandler] = {
     "导": upload.upload_scores,
     "在哪mai": where.where_mai,
     "info": info.song_info,
+}
+
+suffix_handlers: dict[str, SuffixHandler] = {
+    "是什么歌": info.alias_song_info,
 }
 
 
@@ -55,6 +60,14 @@ def find_command(command_text: str, handlers: dict[str, Any]) -> tuple[str | Non
         matched, args = match_command(command_text, command)
         if matched:
             return command, args
+    return None, ""
+
+
+def find_suffix_command(command_text: str, handlers: dict[str, Any]) -> tuple[str | None, str]:
+    for suffix in handlers:
+        if command_text.endswith(suffix):
+            args = command_text[: -len(suffix)].strip()
+            return suffix, args
     return None, ""
 
 
@@ -85,6 +98,14 @@ async def handle_group_at_message(bot: Bot, event: GroupMessageEvent) -> None:
         sender = message.sender_id
         await handler(bot, message, args, sender)
         logger.info(f"[处理完成] 使用 extended_handler 处理：{msg}")
+        return
+
+    command_key, args = find_suffix_command(command_text, suffix_handlers)
+    if command_key:
+        handler = suffix_handlers[command_key]
+        sender = message.sender_id
+        await handler(bot, message, args, sender)
+        logger.info(f"[处理完成] 使用 suffix_handler 处理：{msg}")
         return
 
     logger.info(f"[未匹配指令] 忽略群消息：{msg}")

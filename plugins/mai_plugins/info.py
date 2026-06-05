@@ -49,11 +49,12 @@ DIVINGFISH_TOKEN = settings.get("diving_fish_dev")
 divingfish = DivingFishProvider(developer_token=DIVINGFISH_TOKEN)
 
 
-async def post_text(message, content: str) -> None:
+async def post_text(message, content: str, msg_seq: int = 1) -> None:
     await message._api.post_group_message(
         group_openid=message.group_openid,
         msg_type=0,
         msg_id=message.id,
+        msg_seq=msg_seq,
         content=content,
     )
 
@@ -76,6 +77,11 @@ async def find_song(query: str) -> Song | None:
 
     matches = await songs.by_keywords(query)
     return matches[0] if matches else None
+
+
+async def find_song_by_alias(alias: str) -> Song | None:
+    songs = await maimai.songs(provider=divingfish, curve_provider=divingfish)
+    return await songs.by_alias(alias)
 
 
 def enum_name(value) -> str:
@@ -160,6 +166,19 @@ def format_info_result(player_song, elapsed: float) -> str:
     return "\n".join(lines)
 
 
+async def send_song_info(message, sender: str, song: Song, query: str, start_time: float, msg_seq: int = 1) -> None:
+    identifier = PlayerIdentifier(qq=int(sender))
+    player_song = await maimai.minfo(song, identifier, provider=divingfish)
+    elapsed = time.perf_counter() - start_time
+
+    if player_song is None:
+        await post_text(message, f"❌ 未找到相关歌曲：{query}", msg_seq=msg_seq)
+        return
+
+    await post_text(message, format_info_result(player_song, elapsed), msg_seq=msg_seq)
+    _log.info(f"[info] {sender} 查询 {song.title} 完成，用时 {elapsed:.2f} 秒")
+
+
 async def song_info(client, message, content, sender=None):
     query = content.strip()
     if not query:
@@ -178,19 +197,40 @@ async def song_info(client, message, content, sender=None):
             await post_text(message, f"❌ 未找到相关歌曲：{query}")
             return
 
-        identifier = PlayerIdentifier(qq=int(sender))
-        player_song = await maimai.minfo(song, identifier, provider=divingfish)
-        elapsed = time.perf_counter() - start_time
-
-        if player_song is None:
-            await post_text(message, f"❌ 未找到相关歌曲：{query}")
-            return
-
-        await post_text(message, format_info_result(player_song, elapsed))
-        _log.info(f"[info] {sender} 查询 {song.title} 完成，用时 {elapsed:.2f} 秒")
+        await send_song_info(message, sender, song, query, start_time)
 
     except Exception as e:
         _log.warning(f"[info] 查询失败：{e}")
+        elapsed = time.perf_counter() - start_time
+        await post_text(
+            message,
+            f"❌ 单曲成绩查询失败，请稍后再试\n错误信息：{e}\n耗时：{elapsed:.2f} 秒",
+        )
+
+
+async def alias_song_info(client, message, content, sender=None):
+    alias = content.strip()
+    if not sender:
+        return "[ERROR] 未提供 sender ID，无法查询"
+
+    if not alias:
+        await post_text(message, "天使还没收录这首歌诶")
+        return
+
+    _log.info(f"[info] 收到 {sender} 对于别名 {alias} 的反查请求")
+    start_time = time.perf_counter()
+
+    try:
+        song = await find_song_by_alias(alias)
+        if song is None:
+            await post_text(message, "天使还没收录这首歌诶")
+            return
+
+        await post_text(message, f"这是《{song.title}》", msg_seq=1)
+        await send_song_info(message, sender, song, alias, start_time, msg_seq=2)
+
+    except Exception as e:
+        _log.warning(f"[info] 别名反查失败：{e}")
         elapsed = time.perf_counter() - start_time
         await post_text(
             message,
